@@ -46,3 +46,25 @@ def initialize_model(vectorstore, api_key, model_name):
     rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
     
     return rag_chain
+
+def initialize_llm(api_key, model_name):
+    """Initialize the LLM for summarizing the conversation."""
+    llm = ChatGroq(model=model_name, groq_api_key=api_key)
+
+    summary_system_prompt = """You are an assistant for summarizing conversations. 
+    Given a conversation, generate a concise summary that captures the main points and key information. 
+    If there is no conversation to summarize, state that there is no conversation to summarize.
+    
+    {context}
+    """
+    
+    summary_prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", summary_system_prompt),
+            ("human", "{context}"),
+        ]
+    )
+    
+    summary_chain = create_stuff_documents_chain(llm, summary_prompt)
+    
+    return summary_chain
