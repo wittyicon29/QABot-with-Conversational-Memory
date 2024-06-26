@@ -44,7 +44,7 @@ def summarize_conversation(chat_history):
     summary_result = rag_chain.invoke({"input": input_text})
     return summary_result["answer"]
 
-st.title("RAG Chatbot with Conversational Memory")
+st.title("QA Chatbot with Conversational Memory")
 st.sidebar.title("Configuration")
 api_key = st.sidebar.text_input("Enter your GROQ Cloud API key", type="password")
 
