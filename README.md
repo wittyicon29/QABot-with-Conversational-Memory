@@ -23,6 +23,7 @@ This project demonstrates the creation of a Natural Language Query Agent capable
 - **main.py**: Streamlit application for the chatbot interface.
 
 ### Intermediary Representation
+![PDF](https://github.com/wittyicon29/QABot-with-Conversational-Memory/assets/99320225/5832d0be-a092-4acb-97c0-d7fc7657942b)
 
 **Data Organization and Embedding**:
 
