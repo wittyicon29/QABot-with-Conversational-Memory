@@ -5,8 +5,6 @@ from data_loading import load_data
 from processing import process_data
 from model_initialization import initialize_model
 
-chat_history = []
-
 def format_source(source):
     """Format the source information for better readability."""
     metadata = source.metadata
@@ -25,26 +23,9 @@ def display_chat_history(chat_history):
         if isinstance(msg, HumanMessage):
             st.markdown(f"**Query {i//2 + 1}:** {msg.content}")
         else:
-            st.markdown(f"**Answer {i//2 + 1}:** {msg.content}")
-            
-def summarize_conversation(chat_history):
-    """Generate a summary of the conversation using the LLM."""
-    if not chat_history:
-        return "No conversation to summarize."
-    
-    summary_prompt = "Summarize the following conversation:\n\n"
-    conversation = ""
-    for msg in chat_history:
-        if isinstance(msg, HumanMessage):
-            conversation += f"User: {msg.content}\n"
-        else:
-            conversation += f"Assistant: {msg.content}\n"
-    
-    input_text = summary_prompt + conversation
-    summary_result = rag_chain.invoke({"input": input_text})
-    return summary_result["answer"]
+            st.markdown(f"**Answer {i//2 + 1}:** {msg}")
 
-st.title("QA Chatbot with Conversational Memory")
+st.title("RAG Chatbot with Conversational Memory")
 st.sidebar.title("Configuration")
 api_key = st.sidebar.text_input("Enter your GROQ Cloud API key", type="password")
 
@@ -58,8 +39,11 @@ model_name = st.sidebar.selectbox(
     ]
 )
 
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+
 if st.sidebar.button("Clear Chat History"):
-    chat_history = []
+    st.session_state.chat_history = []
     st.sidebar.success("Chat history cleared.")
 
 if api_key:
@@ -74,7 +58,7 @@ if api_key:
 
     if st.button("Ask"):
         if query:
-            result = rag_chain.invoke({"input": query, "chat_history": chat_history})
+            result = rag_chain.invoke({"input": query, "chat_history": st.session_state.chat_history})
             answer = result["answer"]
             context = result["context"]
 
@@ -89,13 +73,9 @@ if api_key:
                     st.markdown(format_source(doc))
                     displayed_urls.add(url)
 
-            chat_history.extend([HumanMessage(content=query), result["answer"]])
+            st.session_state.chat_history.extend([HumanMessage(content=query), answer])
 
     if st.sidebar.button("Display Chat History"):
-        display_chat_history(chat_history)
-        
-    if st.sidebar.button("Summarize Conversation"):
-        summary = summarize_conversation(chat_history)
-        st.markdown(f"**Conversation Summary:** {summary}")
+        display_chat_history(st.session_state.chat_history)
 else:
     st.warning("Please enter your API key in the sidebar to continue.")
