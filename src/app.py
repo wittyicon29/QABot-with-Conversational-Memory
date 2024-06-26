@@ -3,7 +3,8 @@ from langchain_core.messages import HumanMessage
 import os
 from data_loading import load_data
 from processing import process_data
-from model_initialization import initialize_model
+from model_initialization import initialize_model, initialize_llm
+from langchain.docstore.document import Document
 
 def format_source(source):
     """Format the source information for better readability."""
@@ -25,7 +26,32 @@ def display_chat_history(chat_history):
         else:
             st.markdown(f"**Answer {i//2 + 1}:** {msg}")
 
-st.title("RAG Chatbot with Conversational Memory")
+def summarize_conversation(chat_history, llm_chain):
+    """Generate a summary of the conversation using the LLM."""
+    if not chat_history:
+        return "No conversation to summarize."
+    
+    summary_prompt = "Summarize the following conversation:\n\n"
+    conversation = ""
+    for msg in chat_history:
+        if isinstance(msg, HumanMessage):
+            conversation += f"User: {msg.content}\n"
+        else:
+            conversation += f"Assistant: {msg}\n"
+    
+    input_text = summary_prompt + conversation
+    doc = Document(page_content=input_text)
+    summary_result = llm_chain.invoke({"context": [doc]})
+    
+    # Debugging: Log the content of summary_result
+    st.write("Summary Result:", summary_result)
+    
+    if isinstance(summary_result, dict) and "answer" in summary_result:
+        return summary_result["answer"]
+    else:
+        return summary_result
+
+st.title("QA Chatbot with Conversational Memory")
 st.sidebar.title("Configuration")
 api_key = st.sidebar.text_input("Enter your GROQ Cloud API key", type="password")
 
@@ -50,15 +76,20 @@ if api_key:
     os.environ["GROQ_API_KEY"] = api_key
     st.sidebar.success("API key set successfully")
 
-    docs_all = load_data()
-    vectorstore = process_data(docs_all)
-    rag_chain = initialize_model(vectorstore, api_key, model_name)
+    if "docs_all" not in st.session_state:
+        st.session_state.docs_all = load_data()
+    if "vectorstore" not in st.session_state:
+        st.session_state.vectorstore = process_data(st.session_state.docs_all)
+    if "rag_chain" not in st.session_state:
+        st.session_state.rag_chain = initialize_model(st.session_state.vectorstore, api_key, model_name)
+    if "llm_chain" not in st.session_state:
+        st.session_state.llm_chain = initialize_llm(api_key, model_name)
 
     query = st.text_input("Enter your query:")
 
     if st.button("Ask"):
         if query:
-            result = rag_chain.invoke({"input": query, "chat_history": st.session_state.chat_history})
+            result = st.session_state.rag_chain.invoke({"input": query, "chat_history": st.session_state.chat_history})
             answer = result["answer"]
             context = result["context"]
 
@@ -77,5 +108,9 @@ if api_key:
 
     if st.sidebar.button("Display Chat History"):
         display_chat_history(st.session_state.chat_history)
+        
+    if st.sidebar.button("Summarize Conversation"):
+        summary = summarize_conversation(st.session_state.chat_history, st.session_state.llm_chain)
+        st.markdown(f"**Conversation Summary:** {summary}")
 else:
     st.warning("Please enter your API key in the sidebar to continue.")
