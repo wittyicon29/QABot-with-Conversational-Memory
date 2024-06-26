@@ -1,0 +1,11 @@
+langchain
+langchain_community
+langchain_chroma
+langchain_text_splitters
+langchain_huggingface
+transformers
+langchain-groq
+langchain-groq==0.1.5
+langchain-community==0.2.5
+langchain-core==0.2.9
+streamlit
